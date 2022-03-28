@@ -5,8 +5,9 @@ module.exports = (req,res,next) => {
         console.log("verifying");
         const token = req.headers.authorization.split(' ')[1];
         console.log(token);
-        jwt.verify(token,"secret_this_should_be_longer");
+        const decodedToken=jwt.verify(token,process.env.JWT_KEY);
         console.log("verified")
+        req.dataAuth={email:decodedToken.email,userId:decodedToken.userId};
         next();
     }catch(err){
         console.log("not verified")

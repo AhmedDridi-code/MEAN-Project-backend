@@ -52,7 +52,8 @@ router.post("/",checkAuth,multer({storage:storage}).single("image"), async (req,
     const post = new Post({
         title:req.body.title,
         description:req.body.description,
-        imagePath:url+"/images/"+req.file.filename
+        imagePath:url+"/images/"+req.file.filename,
+        creator:req.dataAuth.userId,
     });
     try{
         const addedPost = await post.save();     
@@ -65,11 +66,18 @@ router.post("/",checkAuth,multer({storage:storage}).single("image"), async (req,
 
 router.delete("/:id",checkAuth, async (req, res)=>{
     try{
-        const post = await Post.findByIdAndDelete(req.params.id);
-        const imageUrl =post.imagePath.split("/");
-        const imageFile = imageUrl[imageUrl.length-1];
-        fs.unlinkSync("images/"+imageFile);
-        res.status(200).json({message:"post deleted successfully"});
+        const post = await Post.findById(req.params.id);
+        Post.deleteOne({_id:req.params.id, creator:req.dataAuth.userId}).then(()=>{
+
+            console.log(post);
+            const imageUrl =post.imagePath.split("/");
+            const imageFile = imageUrl[imageUrl.length-1];
+            fs.unlinkSync("images/"+imageFile);
+            res.status(200).json({message:"post deleted successfully"});
+        }).catch(e=>{
+            res.status(500).json({message:e});
+        })
+
     }catch(e){
         console.log("error in post ",e);
         res.status(500).json({message:e.message})
@@ -96,10 +104,17 @@ router.put("/:id",checkAuth, multer({storage:storage}).single("image"), async (r
             _id:req.params.id,
             title:req.body.title,
             description:req.body.description,
-            imagePath:imagePath
+            imagePath:imagePath,
+            creator:req.userData.userId,
         }
-        const result = await Post.findByIdAndUpdate(req.params.id,post);
-        res.status(200).json({message:"post edited successfully",post:post});
+        Post.updateOne({_id:req.params.id,creator:req.dataAuth.userId},post).then((response) => {
+            if(response.nModified>0){
+                res.status(200).json({message:"post edited successfully",post:post});
+            }else{
+                res.status(401).json({message:"Unauthorized"})
+            }
+        });
+        
     }catch(e){
         console.log("error in post ",e);
         res.status(500).json({message:e.message})

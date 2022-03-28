@@ -3,8 +3,9 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 const User = require('../models/user')
-
+require('dotenv').config()
 router.post("/signup",(req,res)=>{
+    
     bcrypt.hash(req.body.password,10)
 .then(hash=>{
         const user = new User({
@@ -35,14 +36,13 @@ router.post("/login",(req,res)=>{
         if(!result){
             return res.status(401).json({message:"problem in bycript"})
         }
-        const token = jwt.sign({email:fetchedUSer.email,userId:fetchedUSer._id}, "secret_this_should_be_longer",{expiresIn:"5h"})
-        res.status(200).json({token:token});
+        const token = jwt.sign({email:fetchedUSer.email,userId:fetchedUSer._id},process.env.JWT_KEY,{expiresIn:"5h"})
+        res.status(200).json({token:token,expiresIn:3600, userId:fetchedUSer._id});
     })
     .catch(err=>{
         console.log(err);
         return res.status(401).json({message:"problem in bycript"})
     })
 })
-
 
 module.exports =router;
